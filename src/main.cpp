@@ -7,14 +7,20 @@ using std::endl;
 using std::getline;
 
 int main() {
-  // Flush after every std::cout / std:cerr
-  cout << std::unitbuf;
-  cerr << std::unitbuf;
+    // Flush after every std::cout / std:cerr
 
-  cout << "$ ";
+    while (true) {
+        cout << std::unitbuf;
+        cerr << std::unitbuf;
+        cout << "$ ";
 
-  std::string input;
-  getline(std::cin, input);
+        std::string input;
+        getline(std::cin, input);
 
-  cout << input << ": command not found" << endl;
+        if (input == "exit") {
+            break;
+        } else {
+            cout << input << ": command not found" << endl;
+        }
+    }
 }
