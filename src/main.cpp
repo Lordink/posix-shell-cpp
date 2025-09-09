@@ -3,6 +3,7 @@
 
 using std::cerr;
 using std::cout;
+using std::endl;
 using std::getline;
 
 int main() {
@@ -10,9 +11,10 @@ int main() {
   cout << std::unitbuf;
   cerr << std::unitbuf;
 
-  // Uncomment this block to pass the first stage
   cout << "$ ";
 
   std::string input;
   getline(std::cin, input);
+
+  cout << input << ": command not found" << endl;
 }
