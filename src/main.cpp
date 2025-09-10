@@ -31,8 +31,11 @@ bool is_executable(std::filesystem::path const &path) {
 #endif
 }
 
-void get_executables_in_dir(const string &abs_path,
-                            std::unordered_set<string> &out_executables) {
+void get_executables_in_dir(
+    const string &abs_path,
+    // TODO this should be unordered_map<string, vec<string>>
+    std::unordered_set<string> &out_executables) {
+
     try {
         std::filesystem::directory_iterator it(abs_path);
 
@@ -127,7 +130,8 @@ int main() {
                 }
 
                 // Could be nicer if using cpp20, but this is fine for now
-                if (builtins.find(all_args) != builtins.end()) {
+                if (builtins.contains(all_args) ||
+                    executables.contains(all_args)) {
                     cout << all_args << " is a shell builtin" << endl;
                 } else {
                     cout << all_args << ": not found" << endl;
