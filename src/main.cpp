@@ -169,7 +169,8 @@ int main() {
                         executables, all_args, dir_order, exec_dir);
 
                     if (found_in_path) {
-                        cout << all_args << " is " << exec_dir << endl;
+                        cout << all_args << " is " << exec_dir << "/"
+                             << all_args << endl;
                     } else {
                         cout << all_args << ": not found" << endl;
                     }
