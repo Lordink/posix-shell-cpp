@@ -14,7 +14,7 @@ using std::endl;
 using std::getline;
 using std::string;
 
-#define _DEBUG_LOG_EXECUTABLES false
+// #define _DEBUG_LOG_EXECUTABLES true
 
 // Used for "type" command only
 const std::unordered_set<string> builtins = {"echo", "exit", "type"};
