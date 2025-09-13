@@ -95,10 +95,12 @@ std::vector<string> get_path_dirs() {
 }
 
 bool find_executable_dir(ExecMap const &execs, string const &executable,
+                         std::vector<string> const &order,
                          string &out_found_dir) {
 
-    for (const auto &[dir, execs_inside] : execs) {
-        if (execs_inside.contains(executable)) {
+    for (const auto &dir : order) {
+        auto it = execs.find(dir);
+        if (it != execs.end() && it->second.contains(executable)) {
             out_found_dir = dir;
             return true;
         }
@@ -113,8 +115,11 @@ int main() {
     cerr << std::unitbuf;
 
     ExecMap executables;
+    // Reqs mention preserving the order of dirs; using extra vec for that.
+    std::vector<string> dir_order;
     for (const string &dir : get_path_dirs()) {
         get_executables_in_dir(dir, executables);
+        dir_order.push_back(dir);
     }
 #ifdef _DEBUG_LOG_EXECUTABLES
     cout << "Num executables found: " << executables.size();
@@ -160,8 +165,8 @@ int main() {
                     cout << all_args << " is a shell builtin" << endl;
                 } else {
                     string exec_dir;
-                    const bool found_in_path =
-                        find_executable_dir(executables, all_args, exec_dir);
+                    const bool found_in_path = find_executable_dir(
+                        executables, all_args, dir_order, exec_dir);
 
                     if (found_in_path) {
                         cout << all_args << " is " << exec_dir << endl;
