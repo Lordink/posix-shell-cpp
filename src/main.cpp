@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <print>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -13,11 +12,9 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::getline;
-using std::print;
-using std::println;
 using std::string;
 
-#define _DEBUG_LOG_EXECUTABLES true
+#define _DEBUG_LOG_EXECUTABLES false
 
 // Used for "type" command only
 const std::unordered_set<string> builtins = {"echo", "exit", "type"};
@@ -122,10 +119,10 @@ int main() {
 #ifdef _DEBUG_LOG_EXECUTABLES
     cout << "Num executables found: " << executables.size();
     for (const auto &[dir, execs_inside] : executables) {
-        println("Directory {}:", dir);
-        print("    ");
+        cout << "Directory " << dir << ":" << endl;
+        cout << "    ";
         for (const auto &exec : execs_inside) {
-            print("{}; ", exec);
+            cout << exec << " ";
         }
         cout << endl;
     }
@@ -167,7 +164,7 @@ int main() {
                         find_executable_dir(executables, all_args, exec_dir);
 
                     if (found_in_path) {
-                        println("{} is {}", all_args, exec_dir);
+                        cout << all_args << " is " << exec_dir << endl;
                     } else {
                         cout << all_args << ": not found" << endl;
                     }
