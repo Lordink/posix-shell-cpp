@@ -2,8 +2,10 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <print>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -11,7 +13,11 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::getline;
+using std::print;
+using std::println;
 using std::string;
+
+#define _DEBUG_LOG_EXECUTABLES true
 
 // Used for "type" command only
 const std::unordered_set<string> builtins = {"echo", "exit", "type"};
@@ -20,6 +26,9 @@ const std::unordered_set<string> builtins = {"echo", "exit", "type"};
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 #endif
 
+// Key is dir; val is executables inside that dir
+using ExecMap = std::unordered_map<string, std::unordered_set<string>>;
+
 // Also checks whether it has the right perm
 bool is_executable(std::filesystem::path const &path) {
 #ifdef _WIN32
@@ -27,21 +36,26 @@ bool is_executable(std::filesystem::path const &path) {
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     return windows_exec_exts.contains(ext);
 #else
-    // TODO
+    using std::filesystem::perms;
+    const auto prms = std::filesystem::status(path).permissions();
+    return (prms & perms::owner_exec) != perms::none ||
+           (prms & perms::group_exec) != perms::none ||
+           (prms & perms::others_exec) != perms::none;
 #endif
 }
 
-void get_executables_in_dir(
-    const string &abs_path,
-    // TODO this should be unordered_map<string, vec<string>>
-    std::unordered_set<string> &out_executables) {
-
+void get_executables_in_dir(const string &abs_path, ExecMap &out_executables) {
     try {
         std::filesystem::directory_iterator it(abs_path);
 
         for (const auto &entry : it) {
             if (entry.is_regular_file() && is_executable(entry.path())) {
-                out_executables.insert(entry.path().filename().string());
+                const auto exec_str = entry.path().filename().string();
+                if (out_executables.contains(abs_path)) {
+                    out_executables[abs_path].insert(exec_str);
+                } else {
+                    out_executables.insert({abs_path, {exec_str}});
+                }
             }
         }
     } catch (const std::filesystem::filesystem_error &e) {
@@ -83,24 +97,39 @@ std::vector<string> get_path_dirs() {
     return dirs;
 }
 
+bool find_executable_dir(ExecMap const &execs, string const &executable,
+                         string &out_found_dir) {
+
+    for (const auto &[dir, execs_inside] : execs) {
+        if (execs_inside.contains(executable)) {
+            out_found_dir = dir;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int main() {
     // Flush after every std::cout / std:cerr
     cout << std::unitbuf;
     cerr << std::unitbuf;
 
-    std::unordered_set<string> executables;
+    ExecMap executables;
     for (const string &dir : get_path_dirs()) {
-        // cout << dir << ": " << endl;
         get_executables_in_dir(dir, executables);
     }
-    /*
+#ifdef _DEBUG_LOG_EXECUTABLES
     cout << "Num executables found: " << executables.size();
-    for (const auto &fname : executables) {
-        cout << fname << "; ";
+    for (const auto &[dir, execs_inside] : executables) {
+        println("Directory {}:", dir);
+        print("    ");
+        for (const auto &exec : execs_inside) {
+            print("{}; ", exec);
+        }
+        cout << endl;
     }
-    cout << endl;
-    */
-    // TODO executive permissions check (on unix)
+#endif
 
     while (true) {
         cout << "$ ";
@@ -130,11 +159,18 @@ int main() {
                 }
 
                 // Could be nicer if using cpp20, but this is fine for now
-                if (builtins.contains(all_args) ||
-                    executables.contains(all_args)) {
+                if (builtins.contains(all_args)) {
                     cout << all_args << " is a shell builtin" << endl;
                 } else {
-                    cout << all_args << ": not found" << endl;
+                    string exec_dir;
+                    const bool found_in_path =
+                        find_executable_dir(executables, all_args, exec_dir);
+
+                    if (found_in_path) {
+                        println("{} is {}", all_args, exec_dir);
+                    } else {
+                        cout << all_args << ": not found" << endl;
+                    }
                 }
             }
         } else {
