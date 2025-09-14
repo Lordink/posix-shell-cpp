@@ -17,7 +17,7 @@ using std::string;
 // #define _DEBUG_LOG_EXECUTABLES true
 
 // Used for "type" command only
-const std::unordered_set<string> builtins = {"echo", "type"};
+const std::unordered_set<string> builtins = {"echo", "exit", "type"};
 
 #ifdef _WIN32
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
