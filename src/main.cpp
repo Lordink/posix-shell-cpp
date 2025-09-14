@@ -181,15 +181,15 @@ struct ShellState final {
                 const bool found_queried_in_path =
                     this->find_executable_dir(queried_exec, queried_exec_dir);
                 if (found_queried_in_path) {
-                    cout << queried_exec << " is " << queried_exec_dir << "/"
-                         << queried_exec << endl;
+                    cout << format("{} is {}/{}\n", queried_exec,
+                                   queried_exec_dir, queried_exec);
                 } else {
                     cout << queried_exec << ": not found" << endl;
                 }
             }
         } else if (cmd == "pwd") {
             const auto current_dir = std::filesystem::current_path().string();
-            cout << format("pwd is {}\n", current_dir);
+            cout << current_dir << endl;
         } else {
             return false;
         }
