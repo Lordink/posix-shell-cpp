@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -11,6 +12,7 @@
 using std::cerr;
 using std::cout;
 using std::endl;
+using std::format;
 using std::getline;
 using std::string;
 
@@ -19,7 +21,7 @@ using std::string;
 // Used for "type" command only
 // TODO map these to their functionality to avoid duplication and potential
 //      mistakes if a new builtin is added only to one of two places
-const std::unordered_set<string> builtins = {"echo", "exit", "type"};
+const std::unordered_set<string> builtins = {"echo", "exit", "type", "pwd"};
 
 #ifdef _WIN32
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
@@ -156,21 +158,19 @@ struct ShellState final {
 
     // If it's a builtin - will handle it and return true
     bool handle_builtin(const std::vector<string> &cmd_words) {
-        // Every builtin currently is 2+ words
-        if (cmd_words.size() < 2) {
-            return false;
-        }
         const auto &cmd = cmd_words[0];
+        // Most builtins require at least 1 arg
+        const auto has_args = [cmd_words] { return cmd_words.size() > 1; };
 
-        if (cmd == "exit") {
+        if (cmd == "exit" && has_args()) {
             // May throw; ignoring that fact for now
             exit(std::stoi(cmd_words[1]));
-        } else if (cmd == "echo") {
+        } else if (cmd == "echo" && has_args()) {
             for (size_t i = 1; i < cmd_words.size(); i++) {
                 cout << cmd_words[i] << ' ';
             }
             cout << endl;
-        } else if (cmd == "type") {
+        } else if (cmd == "type" && has_args()) {
             string queried_exec = cmd_words[1];
 
             if (builtins.contains(queried_exec)) {
@@ -187,6 +187,9 @@ struct ShellState final {
                     cout << queried_exec << ": not found" << endl;
                 }
             }
+        } else if (cmd == "pwd") {
+            const auto current_dir = std::filesystem::current_path().string();
+            cout << format("pwd is {}\n", current_dir);
         } else {
             return false;
         }
