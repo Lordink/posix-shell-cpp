@@ -17,7 +17,7 @@ using std::string;
 // #define _DEBUG_LOG_EXECUTABLES true
 
 // Used for "type" command only
-const std::unordered_set<string> builtins = {"echo", "exit", "type"};
+const std::unordered_set<string> builtins = {"echo", "type"};
 
 #ifdef _WIN32
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
@@ -97,7 +97,6 @@ std::vector<string> get_path_dirs() {
 bool find_executable_dir(ExecMap const &execs, string const &executable,
                          std::vector<string> const &order,
                          string &out_found_dir) {
-
     for (const auto &dir : order) {
         auto it = execs.find(dir);
         if (it != execs.end() && it->second.contains(executable)) {
@@ -108,6 +107,9 @@ bool find_executable_dir(ExecMap const &execs, string const &executable,
 
     return false;
 }
+
+// Run executable
+int exec(string const &command) { return std::system(command.c_str()); }
 
 int main() {
     // Flush after every std::cout / std:cerr
@@ -143,8 +145,29 @@ int main() {
         const auto words = into_words(input);
 
         if (input == "exit 0") {
-            break;
-        } else if (words.size() > 1) {
+            return 0;
+        }
+
+        auto cmd = words[0];
+#ifdef _WIN32
+        // On windows, by default things end with .exe (there's other exec
+        // extensions but keeping it simple) So if cmd has no .exe already,
+        // we'll add it Not bulletproof solution for multiple reasons, but
+        // speeds up local testing
+        if (cmd.find('.') == std::string::npos) {
+            cmd += ".exe";
+        }
+#endif
+        // TODO move builtin check here
+        string exec_dir;
+        const bool found_in_path =
+            find_executable_dir(executables, cmd, dir_order, exec_dir);
+        if (found_in_path) {
+            exec(input);
+            continue;
+        }
+
+        if (words.size() > 1) {
             if (words[0] == "echo") {
                 for (size_t i = 1; i < words.size(); i++) {
                     cout << words[i] << ' ';
