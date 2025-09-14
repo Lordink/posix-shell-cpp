@@ -17,6 +17,8 @@ using std::string;
 // #define _DEBUG_LOG_EXECUTABLES true
 
 // Used for "type" command only
+// TODO map these to their functionality to avoid duplication and potential
+//      mistakes if a new builtin is added only to one of two places
 const std::unordered_set<string> builtins = {"echo", "exit", "type"};
 
 #ifdef _WIN32
@@ -40,6 +42,7 @@ std::vector<string> into_words(const string &input) {
     return words;
 }
 
+// @returns list of strings representing abs directories, found in $PATH
 std::vector<string> get_path_dirs() {
     const char *path = std::getenv("PATH");
 
@@ -158,9 +161,6 @@ struct ShellState final {
             return false;
         }
         const auto &cmd = cmd_words[0];
-        if (!builtins.contains(cmd)) {
-            return false;
-        }
 
         if (cmd == "exit") {
             // May throw; ignoring that fact for now
@@ -170,7 +170,6 @@ struct ShellState final {
                 cout << cmd_words[i] << ' ';
             }
             cout << endl;
-            return true;
         } else if (cmd == "type") {
             string queried_exec = cmd_words[1];
 
@@ -188,9 +187,10 @@ struct ShellState final {
                     cout << queried_exec << ": not found" << endl;
                 }
             }
-            return true;
+        } else {
+            return false;
         }
-        return false;
+        return true;
     }
 };
 
@@ -223,7 +223,6 @@ int main() {
         // speeds up local testing
         util::adjust_exec_file_ext(cmd);
 #endif
-        // TODO move builtin check here
         string exec_dir;
         const bool found_in_path = state.find_executable_dir(cmd, exec_dir);
         if (found_in_path) {
