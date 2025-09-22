@@ -225,7 +225,11 @@ struct ShellState final {
                 }
             }
         } else if (cmd == "pwd") {
-            cout << this->cwd.string() << endl;
+            auto path_str = this->cwd.string();
+            if (path_str.back() == '/') {
+                path_str.pop_back();
+            }
+            cout << path_str << endl;
         } else if (cmd == "cd" && has_args()) {
             const auto &new_path_str = cmd_words[1];
             const Path new_path = sanitize(Path(new_path_str));
