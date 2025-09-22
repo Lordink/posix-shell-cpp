@@ -21,7 +21,8 @@ using std::string;
 // Used for "type" command only
 // TODO map these to their functionality to avoid duplication and potential
 //      mistakes if a new builtin is added only to one of two places
-const std::unordered_set<string> builtins = {"echo", "exit", "type", "pwd"};
+const std::unordered_set<string> builtins = {"echo", "exit", "type", "pwd",
+                                             "cd"};
 
 #ifdef _WIN32
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
@@ -124,12 +125,14 @@ struct ShellState final {
     ExecMap path;
     // Reqs mention preserving the order of dirs; using extra vec for that.
     std::vector<string> dir_order;
+    std::filesystem::path cwd = std::filesystem::current_path().string();
 
     ShellState() {
         for (const string &dir : util::get_path_dirs()) {
             util::get_executables_in_dir(dir, this->path);
             dir_order.push_back(dir);
         }
+
 #ifdef _DEBUG_LOG_EXECUTABLES
         for (const auto &[dir, execs_inside] : this->path) {
             cout << "Directory " << dir << ":" << endl;
@@ -188,8 +191,17 @@ struct ShellState final {
                 }
             }
         } else if (cmd == "pwd") {
-            const auto current_dir = std::filesystem::current_path().string();
-            cout << current_dir << endl;
+            cout << this->cwd.string() << endl;
+        } else if (cmd == "cd" && has_args()) {
+            const auto &new_path_str = cmd_words[1];
+            const std::filesystem::path new_path{new_path_str};
+
+            if (!std::filesystem::exists(new_path)) {
+                cout << format("{}: No such file or directory\n", new_path_str);
+            } else {
+                this->cwd = new_path;
+            }
+
         } else {
             return false;
         }
