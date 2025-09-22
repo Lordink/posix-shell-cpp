@@ -4,6 +4,7 @@
 #include <format>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -15,6 +16,8 @@ using std::endl;
 using std::format;
 using std::getline;
 using std::string;
+
+using Path = std::filesystem::path;
 
 // #define _DEBUG_LOG_EXECUTABLES true
 
@@ -72,7 +75,7 @@ std::vector<string> get_path_dirs() {
 int exec(string const &command) { return std::system(command.c_str()); }
 
 // Also checks whether it has the right perm
-bool is_executable(std::filesystem::path const &path) {
+bool is_executable(Path const &path) {
 #ifdef _WIN32
     auto ext = path.extension().string();
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -125,7 +128,7 @@ struct ShellState final {
     ExecMap path;
     // Reqs mention preserving the order of dirs; using extra vec for that.
     std::vector<string> dir_order;
-    std::filesystem::path cwd = std::filesystem::current_path().string();
+    Path cwd = std::filesystem::current_path().string();
 
     ShellState() {
         for (const string &dir : util::get_path_dirs()) {
@@ -147,7 +150,8 @@ struct ShellState final {
     }
     ~ShellState() {}
 
-    bool find_executable_dir(string const &executable, string &out_found_dir) {
+    bool find_executable_dir(string const &executable,
+                             string &out_found_dir) const {
         for (const auto &dir : this->dir_order) {
             auto it = this->path.find(dir);
             if (it != this->path.end() && it->second.contains(executable)) {
@@ -157,6 +161,36 @@ struct ShellState final {
         }
 
         return false;
+    }
+
+    // TODO not handling empty path rn
+    Path sanitize(Path const &path) const {
+        auto it = path.begin();
+        auto start = it->string();
+        Path out;
+        if (start == ".") {
+            out = this->cwd;
+        } else if (start == "..") {
+            out = this->cwd.parent_path();
+        } else {
+            out = start;
+        }
+        // Pushing it forward before loop
+        ++it;
+
+        while (it != path.end()) {
+            auto p = it->string();
+            if (p == ".") {
+                throw std::invalid_argument("Found . in the middle of cd path");
+            } else if (p == "..") {
+                out = out.parent_path();
+            } else {
+                out /= p;
+            }
+            ++it;
+        }
+
+        return out;
     }
 
     // If it's a builtin - will handle it and return true
@@ -194,7 +228,7 @@ struct ShellState final {
             cout << this->cwd.string() << endl;
         } else if (cmd == "cd" && has_args()) {
             const auto &new_path_str = cmd_words[1];
-            const std::filesystem::path new_path{new_path_str};
+            const Path new_path = sanitize(Path(new_path_str));
 
             if (!std::filesystem::exists(new_path)) {
                 cout << format("{}: No such file or directory\n", new_path_str);
