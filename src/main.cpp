@@ -172,6 +172,9 @@ struct ShellState final {
             out = this->cwd;
         } else if (start == "..") {
             out = this->cwd.parent_path();
+        } else if (start == "~") {
+            const char *home_path = std::getenv("HOME");
+            out = Path(home_path);
         } else {
             out = start;
         }
@@ -232,7 +235,13 @@ struct ShellState final {
             cout << path_str << endl;
         } else if (cmd == "cd" && has_args()) {
             const auto &new_path_str = cmd_words[1];
-            const Path new_path = sanitize(Path(new_path_str));
+            Path new_path;
+            try {
+                new_path = sanitize(Path(new_path_str));
+            } catch (std::exception &e) {
+                cerr << format("Error parsing path: {}", e.what());
+                exit(1);
+            }
 
             if (!std::filesystem::exists(new_path)) {
                 cout << format("{}: No such file or directory\n", new_path_str);
