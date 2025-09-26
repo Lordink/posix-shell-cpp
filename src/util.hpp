@@ -28,14 +28,44 @@ using ExecMap = std::unordered_map<string, std::unordered_set<string>>;
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 #endif
 
+// #define _DEBUG_LOG_INTO_WORDS true
+
 namespace util {
 
 static std::vector<string> into_words(const string &input) {
     string word;
-    std::istringstream iss(input, std::istringstream::in);
-    std::vector<string> words;
+    vector<string> words;
+    bool is_single_quoting = false;
 
-    while (iss >> word) {
+    for (char const &c : input) {
+#ifdef _DEBUG_LOG_INTO_WORDS
+        cout << "Checking " << c << endl;
+#endif
+        switch (c) {
+        case ' ':
+            if (is_single_quoting) {
+                word.push_back(c);
+            } else if (!word.empty()) {
+#ifdef _DEBUG_LOG_INTO_WORDS
+                cout << "  Pushed back word " << word << endl;
+#endif
+                words.push_back(word);
+                word = "";
+            }
+            break;
+        case '\'':
+            is_single_quoting = !is_single_quoting;
+            break;
+        default:
+#ifdef _DEBUG_LOG_INTO_WORDS
+            cout << "  Pushed back char " << c << endl;
+#endif
+            word.push_back(c);
+            break;
+        }
+    }
+
+    if (!word.empty()) {
         words.push_back(word);
     }
 
