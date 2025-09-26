@@ -28,7 +28,7 @@ using ExecMap = std::unordered_map<string, std::unordered_set<string>>;
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 #endif
 
-#define _DEBUG_LOG_INTO_WORDS true
+// #define _DEBUG_LOG_INTO_WORDS true
 
 namespace util {
 
