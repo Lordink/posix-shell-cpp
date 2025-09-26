@@ -28,38 +28,53 @@ using ExecMap = std::unordered_map<string, std::unordered_set<string>>;
 const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 #endif
 
-// #define _DEBUG_LOG_INTO_WORDS true
+#define _DEBUG_LOG_INTO_WORDS true
 
 namespace util {
 
 static std::vector<string> into_words(const string &input) {
     string word;
     vector<string> words;
+    // TODO bitfield this? (for fun)
     bool is_single_quoting = false;
+    bool is_double_quoting = false;
+
+    static const auto dbg = [](auto text) {
+#ifdef _DEBUG_LOG_INTO_WORDS
+        cout << text << endl;
+#endif
+    };
 
     for (char const &c : input) {
-#ifdef _DEBUG_LOG_INTO_WORDS
-        cout << "Checking " << c << endl;
-#endif
+        dbg(format("Checking {}", c));
         switch (c) {
+        case '"':
+            if (!is_single_quoting) {
+                is_double_quoting = !is_double_quoting;
+            } else {
+                // Within single quotes, double quote is literal
+                word.push_back(c);
+            }
+            break;
+        case '\'':
+            if (!is_double_quoting) {
+                is_single_quoting = !is_single_quoting;
+            } else {
+                // Within double quotes, single quote is literal
+                word.push_back(c);
+            }
+            break;
         case ' ':
-            if (is_single_quoting) {
+            if (is_single_quoting || is_double_quoting) {
                 word.push_back(c);
             } else if (!word.empty()) {
-#ifdef _DEBUG_LOG_INTO_WORDS
-                cout << "  Pushed back word " << word << endl;
-#endif
+                dbg(format("  Pushed back word {}", word));
                 words.push_back(word);
                 word = "";
             }
             break;
-        case '\'':
-            is_single_quoting = !is_single_quoting;
-            break;
         default:
-#ifdef _DEBUG_LOG_INTO_WORDS
-            cout << "  Pushed back char " << c << endl;
-#endif
+            dbg(format("  Pushed back char {}", c));
             word.push_back(c);
             break;
         }
