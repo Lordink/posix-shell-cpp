@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -22,10 +23,11 @@ using std::vector;
 namespace commands {
 using std::size_t;
 
+using CmdArgs = vector<string> const &;
+
 // Command should at least have 3 methods, matches(), min_args() and execute()
-// TODO check min_args() in runtime
 template <typename T>
-concept Command = requires(vector<string> const &args, ShellState &state) {
+concept Command = requires(CmdArgs args, ShellState &state) {
     // In runtime, we match each of these against the input's first word
     { T::matches(args) } -> std::same_as<bool>;
     // Actually run the command. Args are words separated by whitespace
@@ -47,10 +49,8 @@ using Builtins = std::tuple<EchoCmd, ExitCmd, PwdCmd, TypeCmd, CdCmd>;
 
 struct EchoCmd {
     static size_t min_args() { return 1; }
-    static bool matches(vector<string> const &args) {
-        return args[0] == "echo";
-    }
-    static void execute(ShellState &state, vector<string> const &args) {
+    static bool matches(CmdArgs args) { return args[0] == "echo"; }
+    static void execute(ShellState &state, CmdArgs args) {
         for (size_t i = 1; i < args.size(); i++) {
             cout << args[i] << ' ';
         }
@@ -63,7 +63,7 @@ struct ExitCmd {
     static bool matches(vector<string> const &args) {
         return args[0] == "exit";
     }
-    static void execute(ShellState &state, vector<string> const &args) {
+    static void execute(ShellState &state, CmdArgs args) {
         // May throw; ignoring that fact for now
         exit(std::stoi(args[1]));
     }
@@ -71,7 +71,7 @@ struct ExitCmd {
 struct PwdCmd {
     static size_t min_args() { return 0; }
     static bool matches(vector<string> const &args) { return args[0] == "pwd"; }
-    static void execute(ShellState &state, vector<string> const &args) {
+    static void execute(ShellState &state, CmdArgs args) {
         auto path_str = state.cwd.string();
         if (path_str.back() == '/') {
             path_str.pop_back();
@@ -82,7 +82,7 @@ struct PwdCmd {
 struct CdCmd {
     static size_t min_args() { return 1; }
     static bool matches(vector<string> const &args) { return args[0] == "cd"; }
-    static void execute(ShellState &state, vector<string> const &args) {
+    static void execute(ShellState &state, CmdArgs args) {
         const auto &new_path_str = args[1];
         Path new_path;
         try {
@@ -120,10 +120,8 @@ struct TypeCmd {
     }
 
     static size_t min_args() { return 1; }
-    static bool matches(vector<string> const &args) {
-        return args[0] == "type";
-    }
-    static void execute(ShellState &state, vector<string> const &args) {
+    static bool matches(CmdArgs args) { return args[0] == "type"; }
+    static void execute(ShellState &state, CmdArgs args) {
         string queried_exec = args[1];
 
         if (is_in_tuple<Builtins>(queried_exec)) {
@@ -155,17 +153,24 @@ constexpr bool all_commands_valid = ith_member_satisfies_concept<Tuple>(
 static_assert(all_commands_valid<Builtins>,
               "Not all builtins satisfy Command concept");
 
+template <Command C>
+void exec_with_size_check(ShellState &state, CmdArgs args) {
+    assert(args.size() - 1 >= C::min_args());
+    C::execute(state, args);
+}
+
 // Returns true if command executed, i.e. it was a valid builtin
 // (doesn't return the result of command executing tho)
 template <typename... Commands>
-bool exec_if_in_tuple(ShellState &state, vector<string> const &args) {
-    return ((Commands::matches(args) ? (Commands::execute(state, args), true)
-                                     : false) ||
+bool exec_if_in_tuple(ShellState &state, CmdArgs args) {
+    return ((Commands::matches(args)
+                 ? (exec_with_size_check<Commands>(state, args), true)
+                 : false) ||
             ...);
 }
 
 template <typename CommandsTuple>
-bool dispatch_cmd(ShellState &state, vector<string> const &args) {
+bool dispatch_cmd(ShellState &state, CmdArgs args) {
     return std::apply(
         [&](auto... cmds) {
             return exec_if_in_tuple<decltype(cmds)...>(state, args);

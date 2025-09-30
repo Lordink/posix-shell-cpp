@@ -33,7 +33,6 @@ int main() {
 
         // if (state.handle_builtin(words)) {
         if (commands::dispatch_cmd<commands::Builtins>(state, words)) {
-            // code inside will call exit() if it comes to that
             continue;
         }
 
