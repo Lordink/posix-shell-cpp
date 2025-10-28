@@ -172,8 +172,8 @@ bool exec_if_in_tuple(ShellState &state, CmdArgs args) {
 template <typename CommandsTuple>
 bool dispatch_cmd(ShellState &state, CmdArgs args) {
     return std::apply(
-        [&](auto... cmds) {
-            return exec_if_in_tuple<decltype(cmds)...>(state, args);
+        [&]<typename... T0>([[maybe_unused]] T0... cmds) {
+            return exec_if_in_tuple<T0...>(state, args);
         },
         CommandsTuple{});
 }

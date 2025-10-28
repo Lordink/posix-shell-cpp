@@ -39,7 +39,7 @@ static std::vector<string> into_words(const string &input) {
     bool is_single_quoting = false;
     bool is_double_quoting = false;
 
-    static const auto dbg = [](auto text) {
+    static const auto dbg = [](auto const& text) {
 #ifdef _DEBUG_LOG_INTO_WORDS
         cout << text << endl;
 #endif
