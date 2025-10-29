@@ -28,7 +28,7 @@ int main() {
         getline(std::cin, input);
 
         // Break into words:
-        const auto words = util::into_words(input);
+        const auto words = util::tokenize(input);
 
         // if (state.handle_builtin(words)) {
         if (commands::dispatch_builtin<commands::Builtins>(state, words)) {

@@ -32,7 +32,7 @@ const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 
 namespace util {
 
-static vector<string> into_words(const string &input) {
+static vector<string> tokenize(const string &input) {
     string word;
     vector<string> words;
     // TODO bitfield this? (for fun)
@@ -79,7 +79,7 @@ static vector<string> into_words(const string &input) {
             is_next_escaped = false;
             break;
         case '\\':
-            if (!is_single_quoting && !is_double_quoting && !is_next_escaped) {
+            if (!is_single_quoting && !is_next_escaped) {
                 is_next_escaped = true;
             } else {
                 word.push_back(c);
