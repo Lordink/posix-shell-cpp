@@ -33,8 +33,8 @@ const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 namespace util {
 
 static vector<string> tokenize(const string &input) {
-    string word;
-    vector<string> words;
+    string token;
+    vector<string> tokens;
     // TODO bitfield this? (for fun)
     bool is_single_quoting = false;
     bool is_double_quoting = false;
@@ -47,6 +47,9 @@ static vector<string> tokenize(const string &input) {
 #endif
     };
 
+    // Are we still building first word?
+    auto is_first_word = [&tokens]{return tokens.empty();};
+
     for (char const &c : input) {
         dbg(format("Checking {}", c));
         switch (c) {
@@ -55,7 +58,7 @@ static vector<string> tokenize(const string &input) {
                 is_double_quoting = !is_double_quoting;
             } else {
                 // Within single quotes, double quote is literal
-                word.push_back(c);
+                token.push_back(c);
             }
             is_next_escaped = false;
             break;
@@ -64,42 +67,42 @@ static vector<string> tokenize(const string &input) {
                 is_single_quoting = !is_single_quoting;
             } else {
                 // Within double quotes, single quote is literal
-                word.push_back(c);
+                token.push_back(c);
             }
             is_next_escaped = false;
             break;
         case ' ':
             if (is_single_quoting || is_double_quoting || is_next_escaped) {
-                word.push_back(c);
-            } else if (!word.empty()) {
-                dbg(format("  Pushed back word {}", word));
-                words.push_back(word);
-                word = "";
+                token.push_back(c);
+            } else if (!token.empty()) {
+                dbg(format("  Pushed back word {}", token));
+                tokens.push_back(token);
+                token = "";
             }
             is_next_escaped = false;
             break;
         case '\\':
-            if (!is_single_quoting && !is_next_escaped) {
+            if (!is_single_quoting && !is_next_escaped && !is_first_word()) {
                 is_next_escaped = true;
             } else {
-                word.push_back(c);
+                token.push_back(c);
                 // reset in case it was on from prev token
                 is_next_escaped = false;
             }
             break;
         default:
             dbg(format("  Pushed back char {}", c));
-            word.push_back(c);
+            token.push_back(c);
             is_next_escaped = false;
             break;
         }
     }
 
-    if (!word.empty()) {
-        words.push_back(word);
+    if (!token.empty()) {
+        tokens.push_back(token);
     }
 
-    return words;
+    return tokens;
 }
 
 // @returns list of strings representing abs directories, found in $PATH
