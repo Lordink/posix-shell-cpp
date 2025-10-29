@@ -83,6 +83,8 @@ static vector<string> tokenize(const string &input) {
                 is_next_escaped = true;
             } else {
                 word.push_back(c);
+                // reset in case it was on from prev token
+                is_next_escaped = false;
             }
             break;
         default:
