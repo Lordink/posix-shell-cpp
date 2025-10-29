@@ -39,9 +39,9 @@ using Builtins = std::tuple<EchoCmd, ExitCmd, PwdCmd, TypeCmd, CdCmd>;
 // Command should at least have 3 methods, matches(), min_args() and execute()
 template <typename T>
 concept Command = requires(CmdArgs args, ShellState &state) {
-    // In runtime, we match each of these against the input's first word
+    // In runtime, we match each of these against the input's first token
     { T::matches(args) } -> std::same_as<bool>;
-    // Actually run the command. Args are words separated by whitespace
+    // Actually run the command. Args are tokens separated by whitespace
     // (will evolve once we introduce single quoates)
     { T::execute(state, args) } -> std::same_as<void>;
     // Num args that should be passed to this command, excluding the command
