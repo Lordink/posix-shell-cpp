@@ -22,8 +22,19 @@ using std::vector;
 
 namespace commands {
 using std::size_t;
-
 using CmdArgs = vector<string> const &;
+
+
+
+// Forward decl so that the commands themselves could use this,
+// e.g. TypeCmd
+struct TypeCmd;
+struct EchoCmd;
+struct ExitCmd;
+struct PwdCmd;
+struct CdCmd;
+// To add a new builtin, create it below and add to this tuple
+using Builtins = std::tuple<EchoCmd, ExitCmd, PwdCmd, TypeCmd, CdCmd>;
 
 // Command should at least have 3 methods, matches(), min_args() and execute()
 template <typename T>
@@ -38,14 +49,6 @@ concept Command = requires(CmdArgs args, ShellState &state) {
     { T::min_args() } -> std::same_as<size_t>;
 };
 
-// Forward decl so that the commands themselves could use this,
-// e.g. TypeCmd
-struct TypeCmd;
-struct EchoCmd;
-struct ExitCmd;
-struct PwdCmd;
-struct CdCmd;
-using Builtins = std::tuple<EchoCmd, ExitCmd, PwdCmd, TypeCmd, CdCmd>;
 
 struct EchoCmd {
     static size_t min_args() { return 1; }
@@ -169,8 +172,10 @@ bool exec_if_in_tuple(ShellState &state, CmdArgs args) {
             ...);
 }
 
+// Execute a particular builtin if it's in the list of builtins (comptime-checked)
+// Also does a size check for args name against the Command's config
 template <typename CommandsTuple>
-bool dispatch_cmd(ShellState &state, CmdArgs args) {
+bool dispatch_builtin(ShellState &state, CmdArgs args) {
     return std::apply(
         [&]<typename... T0>([[maybe_unused]] T0... cmds) {
             return exec_if_in_tuple<T0...>(state, args);

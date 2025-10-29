@@ -27,11 +27,12 @@ struct ShellState final {
     Path cwd = std::filesystem::current_path().string();
 
     ShellState();
-    ~ShellState() {}
+    ~ShellState() = default;
 
     bool find_executable_dir(string const &executable,
                              string &out_found_dir) const;
 
     // TODO not handling empty path rn
+    [[nodiscard]]
     Path sanitize(Path const &path) const;
 };

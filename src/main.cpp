@@ -31,7 +31,7 @@ int main() {
         const auto words = util::into_words(input);
 
         // if (state.handle_builtin(words)) {
-        if (commands::dispatch_cmd<commands::Builtins>(state, words)) {
+        if (commands::dispatch_builtin<commands::Builtins>(state, words)) {
             continue;
         }
 
@@ -43,9 +43,7 @@ int main() {
         // speeds up local testing
         util::adjust_exec_file_ext(cmd);
 #endif
-        string exec_dir;
-        const bool found_in_path = state.find_executable_dir(cmd, exec_dir);
-        if (found_in_path) {
+        if (string exec_dir; state.find_executable_dir(cmd, exec_dir)) {
             util::exec(input);
             continue;
         }

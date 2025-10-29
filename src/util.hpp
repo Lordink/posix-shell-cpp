@@ -32,12 +32,14 @@ const std::unordered_set<string> windows_exec_exts = {".exe", ".bat", ".cmd"};
 
 namespace util {
 
-static std::vector<string> into_words(const string &input) {
+static vector<string> into_words(const string &input) {
     string word;
     vector<string> words;
     // TODO bitfield this? (for fun)
     bool is_single_quoting = false;
     bool is_double_quoting = false;
+    // Is next char escaped?
+    bool is_next_escaped   = false;
 
     static const auto dbg = [](auto const& text) {
 #ifdef _DEBUG_LOG_INTO_WORDS
@@ -49,33 +51,44 @@ static std::vector<string> into_words(const string &input) {
         dbg(format("Checking {}", c));
         switch (c) {
         case '"':
-            if (!is_single_quoting) {
+            if (!is_single_quoting && !is_next_escaped) {
                 is_double_quoting = !is_double_quoting;
             } else {
                 // Within single quotes, double quote is literal
                 word.push_back(c);
             }
+            is_next_escaped = false;
             break;
         case '\'':
-            if (!is_double_quoting) {
+            if (!is_double_quoting && !is_next_escaped) {
                 is_single_quoting = !is_single_quoting;
             } else {
                 // Within double quotes, single quote is literal
                 word.push_back(c);
             }
+            is_next_escaped = false;
             break;
         case ' ':
-            if (is_single_quoting || is_double_quoting) {
+            if (is_single_quoting || is_double_quoting || is_next_escaped) {
                 word.push_back(c);
             } else if (!word.empty()) {
                 dbg(format("  Pushed back word {}", word));
                 words.push_back(word);
                 word = "";
             }
+            is_next_escaped = false;
+            break;
+        case '\\':
+            if (!is_single_quoting && !is_double_quoting && !is_next_escaped) {
+                is_next_escaped = true;
+            } else {
+                word.push_back(c);
+            }
             break;
         default:
             dbg(format("  Pushed back char {}", c));
             word.push_back(c);
+            is_next_escaped = false;
             break;
         }
     }
@@ -88,7 +101,7 @@ static std::vector<string> into_words(const string &input) {
 }
 
 // @returns list of strings representing abs directories, found in $PATH
-static std::vector<string> get_path_dirs() {
+static vector<string> get_path_dirs() {
     const char *path = std::getenv("PATH");
 
 #ifdef _WIN32
@@ -99,7 +112,7 @@ static std::vector<string> get_path_dirs() {
 
     string dir;
     std::istringstream iss(path);
-    std::vector<string> dirs;
+    vector<string> dirs;
 
     while (getline(iss, dir, sep)) {
         if (!dir.empty()) {
